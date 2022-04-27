@@ -1,7 +1,17 @@
+import { useNavigate } from "react-router-dom";
+
 function TransactionForm() {
+    const navigate = useNavigate();
+
+    // function ที่เมื่อกดแล้วจะ reDirect ไปที่หน้า Home
+    const handleSubmitFrom = (event) => {
+        event.preventDefault();
+        //Create Transaction Completed
+        navigate("/home");
+    };
     return (
         <div className="border bg-white rounded-2 p-3">
-            <form className="row g-3">
+            <form className="row g-3" onSubmit={handleSubmitFrom}>
                 {/* ------------------------------------------------------ */}
                 <div className="col-6">
                     <input
