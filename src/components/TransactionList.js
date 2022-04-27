@@ -7,7 +7,7 @@ function TransactionList() {
     return (
         <ul className="list-group">
             {transactions.map((el) => (
-                <Transaction />
+                <Transaction key={el.id} transaction={el} />
             ))}
         </ul>
     );
