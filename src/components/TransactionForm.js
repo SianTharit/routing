@@ -1,4 +1,5 @@
 import axios from "axios";
+import validator from "validator";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { TransactionContext } from "../context/TransactionContext";
@@ -11,12 +12,25 @@ function TransactionForm() {
     const [transaction, setTransaction] = useState({});
     const [notFoundError, setNotFoundError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    //------------- state ค่่า catagories ทั้งหมดออกมา -------//
     const [categories, setCategories] = useState([]);
+
+    //---------------- state กำหนด type -------------------//
     const [categoryType, setCategoryType] = useState(EXPENSE);
+
+    //--------------- state เก็บค่า input -------------------//
     const [payeeInput, setPayeeInput] = useState("");
     const [categoryId, setCategoryId] = useState("");
-    const [amountInput, setAmountInput] = useState(0);
+    const [amountInput, setAmountInput] = useState("");
     const [dateInput, setDateInput] = useState("");
+
+    //-------------
+    const [error, setError] = useState({});
+
+    //-- state list ของ Expense, list ของ Income ----------//
+    const [expenses, setExpenses] = useState([]);
+    const [incomes, setIncomes] = useState([]);
 
     const { dispatch } = useContext(TransactionContext);
 
@@ -48,8 +62,21 @@ function TransactionForm() {
     useEffect(() => {
         const fetchCategory = async () => {
             const res = await axios.get("http://localhost:8080/categories");
+            const resultExpenses = res.data.categories.filter(
+                (el) => el.type === EXPENSE
+            );
+            const resultIncomes = res.data.categories.filter(
+                (el) => el.type === INCOME
+            );
             setCategories(res.data.categories);
-            setCategoryId(res.data.categories[0].id);
+            setExpenses(resultExpenses);
+            setIncomes(resultIncomes);
+
+            if (categoryType === EXPENSE) {
+                setCategoryId(resultExpenses[0].id);
+            } else {
+                setCategoryId(resultIncomes[0].id);
+            }
         };
         fetchCategory();
     }, []);
@@ -57,10 +84,35 @@ function TransactionForm() {
     const location = useLocation();
     console.log(location);
 
+    // เขียนแบบนี้ก็ได้ แต่มันจะ rerender 2 ครั้ง
+    // useEffect(() => {
+    //     setCategoryId(
+    //         categoryType === EXPENSE ? expenses[0].id : incomes[0].id
+    //     );
+    // }, [categoryType]);
+
     // function ที่เมื่อกดแล้วจะ reDirect ไปที่หน้า Home
     const handleSubmitFrom = async (event) => {
         event.preventDefault();
         //Create Transaction Completed
+        //validate input before request to server
+        const inputError = {};
+        if (validator.isEmpty(payeeInput)) {
+            inputError.payee = "Payee is required";
+        }
+        if (validator.isEmpty(amountInput)) {
+            inputError.amount = "Amount is required";
+        } else if (!validator.isNumeric(amountInput)) {
+            inputError.amount = "Amount must be numeric";
+        }
+        if (validator.isEmpty(dateInput)) {
+            inputError.date = "Date is required";
+        }
+        if (Object.keys(inputError).length > 0) {
+            setError(inputError);
+        } else {
+            setError({});
+        }
         const res = await axios.post("http://localhost:8080/transactions", {
             payee: payeeInput,
             amount: Number(amountInput),
@@ -87,9 +139,10 @@ function TransactionForm() {
         }
     };
 
-    const filteredCategories = categories.filter(
-        (el) => el.type === categoryType
-    );
+    //ไม่ดีเพราะเวลา render มันจะทำงานทุกครั้ง เราจึงควรสร้างเป็น state list --> expenses, incomes
+    // const filteredCategories = categories.filter(
+    //     (el) => el.type === categoryType
+    // );
 
     if (notFoundError)
         return <h1 className="text-white">404 Transaction is not found</h1>;
@@ -106,7 +159,10 @@ function TransactionForm() {
                             id="cbx-expense"
                             name="type"
                             defaultChecked
-                            onChange={() => setCategoryType(EXPENSE)}
+                            onChange={() => {
+                                setCategoryType(EXPENSE);
+                                setCategoryId(expenses[0].id);
+                            }}
                         />
                         <label
                             className="btn btn-outline-danger rounded-0 rounded-start"
@@ -119,7 +175,10 @@ function TransactionForm() {
                             className="btn-check"
                             id="cbx-income"
                             name="type"
-                            onChange={() => setCategoryType(INCOME)}
+                            onChange={() => {
+                                setCategoryType(INCOME);
+                                setCategoryId(incomes[0].id);
+                            }}
                         />
                         <label
                             className="btn btn-outline-success rounded-0 rounded-end"
@@ -139,7 +198,9 @@ function TransactionForm() {
                             className="form-control"
                             type="text"
                             value={payeeInput}
-                            onChange={(el) => setPayeeInput(el.target.value)}
+                            onChange={(event) =>
+                                setPayeeInput(event.target.value)
+                            }
                         />
                     </div>
 
@@ -148,11 +209,15 @@ function TransactionForm() {
                         <label className="form-lable">Category</label>
                         <select
                             className="form-select"
-                            onChange={(el) => {
-                                setCategoryId(el.target.value);
+                            value={categoryId}
+                            onChange={(event) => {
+                                setCategoryId(event.target.value);
                             }}
                         >
-                            {filteredCategories.map((el) => (
+                            {(categoryType === EXPENSE
+                                ? expenses
+                                : incomes
+                            ).map((el) => (
                                 <option key={el.id} value={el.id}>
                                     {el.name}
                                 </option>
@@ -167,7 +232,9 @@ function TransactionForm() {
                             className="form-control"
                             type="text"
                             value={amountInput}
-                            onChange={(el) => setAmountInput(el.target.value)}
+                            onChange={(event) =>
+                                setAmountInput(event.target.value)
+                            }
                         />
                     </div>
 
@@ -178,7 +245,9 @@ function TransactionForm() {
                             className="form-control"
                             type="date"
                             value={dateInput}
-                            onChange={(el) => setDateInput(el.target.value)}
+                            onChange={(event) =>
+                                setDateInput(event.target.value)
+                            }
                         />
                     </div>
 
