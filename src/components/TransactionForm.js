@@ -3,7 +3,10 @@ import validator from "validator";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { TransactionContext } from "../context/TransactionContext";
-import { DELETE_TRANSACTON } from "../reducers/TransactionReducer";
+import {
+    DELETE_TRANSACTON,
+    FETCH_TRANSACTION,
+} from "../reducers/TransactionReducer";
 
 const INCOME = "INCOME";
 const EXPENSE = "EXPENSE";
@@ -25,7 +28,7 @@ function TransactionForm() {
     const [amountInput, setAmountInput] = useState("");
     const [dateInput, setDateInput] = useState("");
 
-    //-------------
+    //--------- state เก็บค่า error เพื่อ check validate -----//
     const [error, setError] = useState({});
 
     //-- state list ของ Expense, list ของ Income ----------//
@@ -39,6 +42,7 @@ function TransactionForm() {
     const params = useParams();
     console.log(params.transactionId);
 
+    ///// get information from server
     useEffect(() => {
         if (params.transactionId) {
             axios
@@ -95,30 +99,47 @@ function TransactionForm() {
     const handleSubmitFrom = async (event) => {
         event.preventDefault();
         //Create Transaction Completed
-        //validate input before request to server
+
+        //--- validate input before request to server
         const inputError = {};
         if (validator.isEmpty(payeeInput)) {
             inputError.payee = "Payee is required";
         }
+
         if (validator.isEmpty(amountInput)) {
             inputError.amount = "Amount is required";
         } else if (!validator.isNumeric(amountInput)) {
             inputError.amount = "Amount must be numeric";
+        } else if (amountInput <= 0) {
+            inputError.amount = "Amount must be geater than 0";
         }
+
         if (validator.isEmpty(dateInput)) {
             inputError.date = "Date is required";
         }
+
         if (Object.keys(inputError).length > 0) {
             setError(inputError);
         } else {
             setError({});
         }
-        const res = await axios.post("http://localhost:8080/transactions", {
-            payee: payeeInput,
-            amount: Number(amountInput),
-            date: dateInput,
-            categoryId: categoryId,
-        });
+
+        ///// post information to server
+        try {
+            await axios.post("http://localhost:8080/transactions", {
+                payee: payeeInput,
+                amount: Number(amountInput),
+                date: dateInput,
+                categoryId: categoryId,
+            });
+            const res = await axios.get("http://localhost:8080/transactions");
+            dispatch({
+                type: FETCH_TRANSACTION,
+                value: { transactions: res.data.transactions },
+            });
+        } catch (err) {
+            console.log(err);
+        }
         navigate("/home");
     };
 
@@ -151,7 +172,7 @@ function TransactionForm() {
         <>
             <div className="border bg-white rounded-2 p-3">
                 <form className="row g-3" onSubmit={handleSubmitFrom}>
-                    {/* ------------------------------------------------------ */}
+                    {/* ---------------------------------------------- */}
                     <div className="col-6">
                         <input
                             type="radio"
@@ -191,20 +212,27 @@ function TransactionForm() {
                         <i className="fa-solid fa-xmark" role="button" />
                     </div>
 
-                    {/* ------------------------------------------------------ */}
+                    {/* --------------------------------------------- */}
                     <div className="col-sm-6">
                         <label className="form-lable">Payee</label>
                         <input
-                            className="form-control"
+                            className={`form-control ${
+                                error.payee ? "is-invalid" : ""
+                            }`}
                             type="text"
                             value={payeeInput}
                             onChange={(event) =>
                                 setPayeeInput(event.target.value)
                             }
                         />
+                        {error.payee && (
+                            <div className="invalid-feedback">
+                                {error.payee}
+                            </div>
+                        )}
                     </div>
 
-                    {/* ------------------------------------------------------ */}
+                    {/* ------------------------------------------- */}
                     <div className="col-sm-6">
                         <label className="form-lable">Category</label>
                         <select
@@ -225,33 +253,45 @@ function TransactionForm() {
                         </select>
                     </div>
 
-                    {/* ------------------------------------------------------ */}
+                    {/* ------------------------------------------- */}
                     <div className="col-sm-6">
                         <label className="form-lable">Amount</label>
                         <input
-                            className="form-control"
+                            className={`form-control ${
+                                error.amount ? "is-invalid" : ""
+                            }`}
                             type="text"
                             value={amountInput}
                             onChange={(event) =>
                                 setAmountInput(event.target.value)
                             }
                         />
+                        {error.amount && (
+                            <div className="invalid-feedback">
+                                {error.amount}
+                            </div>
+                        )}
                     </div>
 
-                    {/* ------------------------------------------------------ */}
+                    {/* ------------------------------------------ */}
                     <div className="col-sm-6">
                         <label className="form-lable">Date</label>
                         <input
-                            className="form-control"
+                            className={`form-control ${
+                                error.date ? "is-invalid" : ""
+                            }`}
                             type="date"
                             value={dateInput}
                             onChange={(event) =>
                                 setDateInput(event.target.value)
                             }
                         />
+                        {error.date && (
+                            <div className="invalid-feedback">{error.date}</div>
+                        )}
                     </div>
 
-                    {/* ------------------------------------------------------ */}
+                    {/* ----------------------------------------- */}
                     <div className="col-12">
                         <div className="d-grid mt-3">
                             <button className="btn btn-primary">Save</button>
