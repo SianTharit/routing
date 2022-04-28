@@ -42,7 +42,7 @@ function TransactionContextProvider({ children }) {
     // }, []);
 
     return (
-        <TransactionContext.Provider value={{ transactions: state }}>
+        <TransactionContext.Provider value={{ transactions: state, dispatch }}>
             {children}
         </TransactionContext.Provider>
     );

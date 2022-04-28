@@ -1,13 +1,15 @@
+import { useNavigate } from "react-router-dom";
 import { formatThaiCurrency } from "../utils/currency";
 import { formatShortMonthShortYear } from "../utils/date";
-function Transaction({
-    transaction: {
+function Transaction({ transaction }) {
+    const {
         payee,
-        category: { name },
+        category: { name, type },
         amount,
         date,
-    },
-}) {
+        id,
+    } = transaction;
+    const navigate = useNavigate();
     //------------ แปลงตัวเลข ----------------//
     // const number = 2500;
     // const result = new Intl.NumberFormat("en-US", {
@@ -26,7 +28,14 @@ function Transaction({
     // console.log(result);
 
     return (
-        <li className="list-group-item d-flex align-items-center bd-callout bd-callout-success">
+        <li
+            className={`list-group-item d-flex align-items-center bd-callout bd-callout-${
+                type === "EXPENSE" ? "danger" : "success"
+            }`}
+            onClick={() =>
+                navigate("/transaction/" + id, { state: transaction })
+            }
+        >
             <div className="d-flex flex-fill" role="button">
                 <div className="border border-1 border-dark rounded-2 bg-warning p-2 text-center w-15">
                     <p className="p-0 m-0 text-black-50 text-3">
@@ -39,7 +48,11 @@ function Transaction({
                         <p className="mb-1 fw-bold">{payee}</p>
                         <p className="mb-0 text-3 text-black-50">{name}</p>
                     </div>
-                    <span className="badge bg-success">
+                    <span
+                        className={`badge bg-${
+                            type === "EXPENSE" ? "danger" : "success"
+                        }`}
+                    >
                         {formatThaiCurrency(amount)}
                     </span>
                 </div>
